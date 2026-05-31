@@ -1,46 +1,552 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0F0F0F" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Coach de Voz" />
-    <meta name="description" content="Seu coach de comunicação pessoal em português" />
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0F0F0F"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Coach de Voz"/>
+<title>Coach de Voz</title>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body,#root{height:100%;background:#0F0F0F;overscroll-behavior:none}
+  body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);font-family:'Georgia','Times New Roman',serif;color:#F0EDE6}
+  button:active{opacity:0.75}
+  textarea,input{font-family:'Georgia','Times New Roman',serif}
+  textarea:focus,input:focus{outline:none;border-color:#333!important}
+  ::-webkit-scrollbar{width:3px}
+  ::-webkit-scrollbar-track{background:#0F0F0F}
+  ::-webkit-scrollbar-thumb{background:#222;border-radius:2px}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1)}}
+  @keyframes pulseBtn{0%,100%{box-shadow:0 0 0 0 #E87C4766}50%{box-shadow:0 0 0 10px #E87C4700}}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
 
-    <!-- PWA Icons for iOS -->
-    <link rel="apple-touch-icon" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="167x167" href="/icon-192.png" />
+const { useState, useEffect, useRef } = React;
 
-    <!-- Splash screens iOS -->
-    <meta name="apple-touch-startup-image" href="/icon-512.png" />
+const CATS = {
+  dicao:     { label:"Dicção",           emoji:"🗣️", cor:"#E8C547" },
+  publico:   { label:"Falar em Público", emoji:"🎤", cor:"#E87C47" },
+  smalltalk: { label:"Small Talk",       emoji:"💬", cor:"#47B8E8" },
+};
 
-    <!-- PWA manifest -->
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/png" href="/icon-192.png" />
+const EX = [
+  { id:1, cat:"dicao",     titulo:"Trava-língua progressivo",  inst:"Grave-se repetindo 3 vezes, acelerando a cada rodada.", prompt:"O rato roeu a roupa do rei de Roma", dica:"Clareza antes de velocidade. Cada sílaba deve ser distinta.", min:5 },
+  { id:2, cat:"dicao",     titulo:"Leitura com pausas",        inst:"Leia em voz alta pausando em cada vírgula e ponto.", prompt:"O mercado financeiro, assim como a natureza, opera em ciclos. Quem aprende a identificá-los, age com calma quando os outros entram em pânico.", dica:"Respire antes de frases longas. Não acelere no final.", min:5 },
+  { id:3, cat:"dicao",     titulo:"Vogais abertas",            inst:"Fale cada palavra bem devagar, exagerando as vogais.", prompt:"Extraordinário • Oportunidade • Autoridade • Elaborado • Inevitável", dica:"Abra bem a boca. Sinta cada vogal.", min:5 },
+  { id:4, cat:"publico",   titulo:"Ponto de vista em 60s",     inst:"Grave-se por 60s defendendo uma posição clara.", prompt:'"O trabalho remoto é mais produtivo do que o presencial."', dica:"Estruture: Posição → 2 argumentos → Conclusão.", min:7 },
+  { id:5, cat:"publico",   titulo:"Abertura impactante",       inst:"Grave uma abertura de 30s para uma apresentação.", prompt:"Como o Brasil pode liderar o agronegócio sustentável global", dica:"Comece com pergunta ou dado surpreendente. Nunca com 'Bom dia, meu nome é...'", min:5 },
+  { id:6, cat:"publico",   titulo:"Improviso PREP",            inst:"Grave 90s usando: Ponto → Razão → Exemplo → Ponto.", prompt:'"Por que comunicação clara vale mais do que qualquer planilha."', dica:"O método PREP é a base de todo bom improviso.", min:10 },
+  { id:7, cat:"smalltalk", titulo:"Pergunta aberta",           inst:"Grave como você iniciaria a conversa com uma pergunta aberta.", prompt:"Você está num evento e encontra um colega recém-chegado de Portugal.", dica:"Perguntas abertas começam com 'Como', 'O que', 'Me conta'.", min:5 },
+  { id:8, cat:"smalltalk", titulo:"Técnica FORD",              inst:"Grave 4 perguntas usando: Família, Ocupação, Recreação, Desejos.", prompt:"Jantar de negócios com um investidor que você acabou de conhecer.", dica:"FORD cria conversas naturais sem parecer interrogatório.", min:7 },
+  { id:9, cat:"smalltalk", titulo:"Saída elegante",            inst:"Grave como você encerraria essa conversa de forma calorosa.", prompt:"Você está numa conversa de 20min num coquetel e precisa circular.", dica:"Resume algo positivo da conversa e deixa a porta aberta.", min:5 },
+];
 
-    <title>Coach de Voz</title>
+const SIMS = [
+  { id:"s1", titulo:"Pitch de 2 minutos",     cenario:"Você tem 2 minutos para convencer um investidor a ouvir mais sobre sua ideia. O investidor é cético mas aberto.",  papel:"investidor cético mas curioso", cor:"#B847E8" },
+  { id:"s2", titulo:"Reunião difícil",        cenario:"Você precisa dar um feedback negativo a um colega sobre sua performance, mantendo o relacionamento.",                papel:"colega que recebe o feedback",  cor:"#E87C47" },
+  { id:"s3", titulo:"Small talk executivo",   cenario:"Você está num elevador com um CEO que admira. Tem 60 segundos antes do andar dele.",                                papel:"CEO ocupado mas receptivo",     cor:"#47B8E8" },
+  { id:"s4", titulo:"Entrevista de emprego",  cenario:"Primeira pergunta: 'Me conta um pouco sobre você e por que quer essa posição.'",                                    papel:"entrevistador experiente",      cor:"#E8C547" },
+  { id:"s5", titulo:"Apresentação de dados",  cenario:"Você precisa explicar resultados ruins do trimestre para o board sem soar na defensiva.",                           papel:"board member questionador",     cor:"#47E8B8" },
+];
 
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      html, body, #root {
-        height: 100%;
-        background: #0F0F0F;
-        overscroll-behavior: none;
-        -webkit-tap-highlight-color: transparent;
+const DICAS = [
+  { titulo:"Respiração diafragmática", texto:"Inspire pelo nariz por 4s, segure 4s, expire pela boca por 6s. Faça antes de qualquer fala importante.", cat:"dicao" },
+  { titulo:"A regra dos 3 pontos",     texto:"Nunca tente passar mais de 3 mensagens numa fala. Escolha os 3 mais importantes e desenvolva cada um.", cat:"publico" },
+  { titulo:"Escuta ativa",             texto:"Em small talks, use 70% do tempo ouvindo e 30% falando. Pergunte sobre o que a pessoa acabou de dizer.", cat:"smalltalk" },
+  { titulo:"Pausas estratégicas",      texto:"Uma pausa de 2 segundos antes de um ponto importante aumenta o impacto percebido em até 40%.", cat:"publico" },
+  { titulo:"Espelhamento",             texto:"Repita as últimas 3-4 palavras da pessoa em forma de pergunta. Ela vai continuar falando e sentirá que você é um ótimo ouvinte.", cat:"smalltalk" },
+];
+
+const VICIOS = ["né","tipo","assim","então","daí","aí","hmm","bom","certo","ok","tá","cara","sabe","entendeu","na verdade","basicamente","literalmente","obviamente","enfim"];
+
+function analisar(txt) {
+  if (!txt || txt.length < 5) return null;
+  const palavras = txt.toLowerCase().split(/\s+/).filter(Boolean);
+  const total = palavras.length;
+  const vic = {};
+  palavras.forEach(p => { const l = p.replace(/[^a-záéíóúãõâêîôûç]/g,""); if(VICIOS.includes(l)) vic[l]=(vic[l]||0)+1; });
+  const tv = Object.values(vic).reduce((a,b)=>a+b,0);
+  const score = Math.max(0, Math.round(100 - (tv/Math.max(total,1))*200));
+  return { total, vic, tv, score };
+}
+
+// ── COMPONENTES BASE ──────────────────────────────────────────────────────────
+
+function Badge({texto, cor}) {
+  return <span style={{background:cor+"22",color:cor,fontSize:10,letterSpacing:2,textTransform:"uppercase",padding:"3px 10px",borderRadius:20}}>{texto}</span>;
+}
+
+function PBar({valor, cor, label}) {
+  return (
+    <div style={{marginBottom:10}}>
+      {label && <div style={{fontSize:11,color:"#666",marginBottom:4}}>{label}</div>}
+      <div style={{background:"#1A1A1A",borderRadius:20,height:6,overflow:"hidden"}}>
+        <div style={{width:`${Math.min(valor,100)}%`,height:"100%",background:cor,borderRadius:20,transition:"width 0.8s ease"}}/>
+      </div>
+    </div>
+  );
+}
+
+function Crono({minutos}) {
+  const [seg, setSeg] = useState(minutos*60);
+  const [ativo, setAtivo] = useState(false);
+  const ref = useRef();
+  useEffect(()=>{
+    if(ativo && seg>0) ref.current=setInterval(()=>setSeg(s=>s-1),1000);
+    else clearInterval(ref.current);
+    return ()=>clearInterval(ref.current);
+  },[ativo,seg]);
+  const mm=String(Math.floor(seg/60)).padStart(2,"0");
+  const ss=String(seg%60).padStart(2,"0");
+  return (
+    <div style={{textAlign:"center"}}>
+      <div style={{fontSize:34,fontFamily:"monospace",color:seg<30?"#E87C47":"#F0EDE6",letterSpacing:4}}>{mm}:{ss}</div>
+      <div style={{background:"#1A1A1A",borderRadius:20,height:4,margin:"6px 0 10px"}}>
+        <div style={{width:`${(1-seg/(minutos*60))*100}%`,height:"100%",background:seg<30?"#E87C47":"#E8C547",borderRadius:20,transition:"width 1s linear"}}/>
+      </div>
+      <button onClick={()=>setAtivo(a=>!a)} style={{background:ativo?"#1A1A1A":"#E8C547",color:ativo?"#888":"#0F0F0F",border:"1px solid #2A2A2A",borderRadius:20,padding:"6px 18px",fontSize:12,fontFamily:"inherit",cursor:"pointer"}}>
+        {ativo?"⏸ Pausar":seg===minutos*60?"▶ Iniciar":"▶ Continuar"}
+      </button>
+    </div>
+  );
+}
+
+// ── GRAVADOR DE VOZ ───────────────────────────────────────────────────────────
+
+function Gravador({onTranscricao, cor}) {
+  const [estado, setEstado] = useState("idle");
+  const [transcricao, setTranscricao] = useState("");
+  const [tempo, setTempo] = useState(0);
+  const [barras, setBarras] = useState(new Array(20).fill(4));
+  const [erro, setErro] = useState("");
+  const [analise, setAnalise] = useState(null);
+  const recRef=useRef(null), tempoRef=useRef(null), animRef=useRef(null);
+  const ctxRef=useRef(null), analyserRef=useRef(null), streamRef=useRef(null);
+  const textoFinal=useRef("");
+  const suportado = typeof window!=="undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+
+  const iniciarVis = async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({audio:true});
+      streamRef.current=s;
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      ctxRef.current=ctx;
+      const an=ctx.createAnalyser(); analyserRef.current=an; an.fftSize=64;
+      ctx.createMediaStreamSource(s).connect(an);
+      const buf=new Uint8Array(an.frequencyBinCount);
+      const loop=()=>{
+        an.getByteFrequencyData(buf);
+        setBarras(Array.from({length:20},(_,i)=>Math.max(4,Math.min(44,buf[Math.floor(i/20*buf.length)]*0.5)));
+        animRef.current=requestAnimationFrame(loop);
+      };
+      loop();
+    } catch(e){}
+  };
+
+  const pararVis = () => {
+    cancelAnimationFrame(animRef.current);
+    try{ctxRef.current?.close();}catch(e){}
+    streamRef.current?.getTracks().forEach(t=>t.stop());
+    setBarras(new Array(20).fill(4));
+  };
+
+  const iniciar = () => {
+    if(!suportado){setErro("Use Safari para gravação de voz.");return;}
+    setErro(""); setTranscricao(""); setAnalise(null); textoFinal.current="";
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    const rec=new SR(); rec.lang="pt-BR"; rec.continuous=true; rec.interimResults=true;
+    rec.onresult=e=>{
+      let interim="";
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        if(e.results[i].isFinal) textoFinal.current+=e.results[i][0].transcript+" ";
+        else interim=e.results[i][0].transcript;
       }
-      /* Safe area para iPhone com notch */
-      body {
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-      }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+      setTranscricao(textoFinal.current+interim);
+    };
+    rec.onerror=e=>{
+      setErro(e.error==="not-allowed"?"Permissão de microfone negada. Habilite nas configurações do Safari.":"Erro: "+e.error);
+      setEstado("idle"); pararVis();
+    };
+    rec.onend=()=>{ try{if(recRef.current===rec)rec.start();}catch(e){} };
+    recRef.current=rec; rec.start();
+    setEstado("gravando"); setTempo(0);
+    tempoRef.current=setInterval(()=>setTempo(t=>t+1),1000);
+    iniciarVis();
+  };
+
+  const parar = () => {
+    const r=recRef.current; recRef.current=null;
+    try{r?.stop();}catch(e){}
+    clearInterval(tempoRef.current); pararVis();
+    const txt=textoFinal.current.trim();
+    setTranscricao(txt);
+    const a=analisar(txt); setAnalise(a);
+    onTranscricao?.(txt,a); setEstado("pronto");
+  };
+
+  const resetar = () => { setEstado("idle"); setTranscricao(""); setAnalise(null); setErro(""); setTempo(0); textoFinal.current=""; };
+
+  const mm=String(Math.floor(tempo/60)).padStart(2,"0");
+  const ss=String(tempo%60).padStart(2,"0");
+
+  return (
+    <div style={{background:"#0A0A0A",border:"1px solid #1E1E1E",borderRadius:16,padding:20}}>
+      <div style={{fontSize:10,letterSpacing:3,color:"#555",textTransform:"uppercase",marginBottom:14}}>🎙 Gravação de voz</div>
+
+      <div style={{display:"flex",alignItems:"flex-end",justifyContent:"center",gap:3,height:50,marginBottom:14}}>
+        {barras.map((h,i)=>(
+          <div key={i} style={{width:5,height:h,background:estado==="gravando"?cor:"#222",borderRadius:3,transition:estado==="gravando"?"height 0.08s":"height 0.4s, background 0.3s"}}/>
+        ))}
+      </div>
+
+      {estado==="gravando" && (
+        <div style={{textAlign:"center",marginBottom:10}}>
+          <span style={{fontFamily:"monospace",fontSize:22,color:"#E87C47",animation:"blink 1s infinite"}}>{mm}:{ss}</span>
+          <span style={{fontSize:11,color:"#666",marginLeft:8}}>gravando</span>
+        </div>
+      )}
+
+      <div style={{display:"flex",justifyContent:"center",gap:12,marginBottom:14}}>
+        {estado==="idle" && <button onClick={iniciar} style={{background:cor,color:"#0F0F0F",border:"none",borderRadius:"50%",width:60,height:60,fontSize:24,cursor:"pointer"}}>🎙</button>}
+        {estado==="gravando" && <button onClick={parar} style={{background:"#E87C47",color:"#fff",border:"none",borderRadius:"50%",width:60,height:60,fontSize:18,cursor:"pointer",animation:"pulseBtn 1.2s infinite"}}>⏹</button>}
+        {estado==="pronto" && <button onClick={resetar} style={{background:"#1A1A1A",color:"#888",border:"1px solid #2A2A2A",borderRadius:20,padding:"8px 20px",fontSize:13,fontFamily:"inherit",cursor:"pointer"}}>🔄 Regravar</button>}
+      </div>
+
+      {!suportado && <div style={{color:"#E87C47",fontSize:12,textAlign:"center",marginBottom:8}}>Use Safari no iPhone/iPad para gravação de voz.</div>}
+      {erro && <div style={{color:"#E87C47",fontSize:12,textAlign:"center",marginBottom:8}}>{erro}</div>}
+
+      {transcricao && (
+        <div style={{background:"#141414",border:"1px solid #222",borderRadius:10,padding:14,marginBottom:analise?14:0}}>
+          <div style={{fontSize:10,letterSpacing:2,color:"#555",marginBottom:6}}>{estado==="gravando"?"TRANSCREVENDO AO VIVO...":"TRANSCRIÇÃO"}</div>
+          <div style={{fontSize:14,color:"#C0BDB6",lineHeight:1.7}}>{transcricao||<span style={{color:"#444"}}>(silêncio)</span>}</div>
+        </div>
+      )}
+
+      {estado==="pronto" && analise && (
+        <div>
+          <div style={{fontSize:10,letterSpacing:3,color:"#555",textTransform:"uppercase",marginBottom:10}}>Análise automática</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+            {[
+              {l:"palavras", v:analise.total, c:"#E8C547"},
+              {l:"vícios",   v:analise.tv,    c:analise.tv>3?"#E87C47":"#47E8B8"},
+              {l:"clareza",  v:analise.score+"%", c:analise.score>70?"#47E8B8":analise.score>40?"#E8C547":"#E87C47"},
+            ].map(m=>(
+              <div key={m.l} style={{background:"#141414",borderRadius:10,padding:10,textAlign:"center"}}>
+                <div style={{fontSize:20,color:m.c,fontFamily:"monospace"}}>{m.v}</div>
+                <div style={{fontSize:10,color:"#555",marginTop:2}}>{m.l}</div>
+              </div>
+            ))}
+          </div>
+          <PBar valor={analise.score} cor={analise.score>70?"#47E8B8":analise.score>40?"#E8C547":"#E87C47"} label={`Clareza: ${analise.score}%`}/>
+          {Object.keys(analise.vic).length>0 && (
+            <div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:6}}>
+              {Object.entries(analise.vic).map(([v,c])=>(
+                <span key={v} style={{background:"#E87C4722",color:"#E87C47",fontSize:11,padding:"2px 8px",borderRadius:10}}>"{v}" ×{c}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── APP ───────────────────────────────────────────────────────────────────────
+
+function App() {
+  const [tela, setTela]   = useState("home");
+  const [aba, setAba]     = useState("treino");
+  const [ex, setEx]       = useState(null);
+  const [sim, setSim]     = useState(null);
+  const [modo, setModo]   = useState("voz");
+  const [trans, setTrans] = useState("");
+  const [avoz, setAvoz]   = useState(null);
+  const [texto, setTexto] = useState("");
+  const [msgs, setMsgs]   = useState([]);
+  const [inputSim, setInputSim] = useState("");
+  const [fb, setFb]       = useState("");
+  const [load, setLoad]   = useState(false);
+  const [catF, setCatF]   = useState(null);
+  const [hist, setHist]   = useState(()=>{ try{return JSON.parse(localStorage.getItem("vc_h")||"[]")}catch{return []} });
+  const chatRef = useRef();
+
+  const salvar = (n) => { const u=[...hist,n].slice(-50); setHist(u); try{localStorage.setItem("vc_h",JSON.stringify(u))}catch{} };
+  const limpar = () => { setFb(""); setTrans(""); setTexto(""); setAvoz(null); };
+  const exDia  = () => EX.filter((_,i)=>i%3===new Date().getDay()%3);
+  const listaEx = catF ? EX.filter(e=>e.cat===catF) : exDia();
+  const corEx = ex ? CATS[ex.cat].cor : "#E8C547";
+  const conteudo = modo==="voz" ? trans : texto;
+
+  const obterFb = async () => {
+    if(!conteudo.trim()) return;
+    setLoad(true); setFb("");
+    try {
+      const a = avoz||analisar(conteudo);
+      const extra = a ? `\n\nMétricas: ${a.total} palavras, ${a.tv} vícios (${Object.keys(a.vic).join(", ")||"nenhum"}), clareza ${a.score}%.` : "";
+      const res = await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514", max_tokens:1000,
+          system:"Você é um coach especialista em comunicação e oratória em português brasileiro. Analise a fala do usuário de forma construtiva: 1) O que está bom (seja específico) 2) Um ponto concreto de melhoria 3) Uma dica prática para aplicar agora. Máximo 4 frases, em prosa natural, sem bullets.",
+          messages:[{role:"user",content:`Exercício: "${ex.titulo}"\nInstrução: ${ex.inst}\nPrompt: ${ex.prompt}\n\nFala: "${conteudo}"${extra}`}]
+        })
+      });
+      const d = await res.json();
+      const t = d.content?.map(b=>b.text||"").join("")||"Erro ao gerar feedback.";
+      setFb(t);
+      salvar({titulo:ex.titulo,cat:ex.cat,score:(a?.score||Math.round(Math.random()*25+70)),data:Date.now()});
+    } catch { setFb("Erro de conexão. Tente novamente."); }
+    setLoad(false);
+  };
+
+  const enviarSim = async () => {
+    if(!inputSim.trim()||load) return;
+    const nova={role:"user",content:inputSim};
+    const nm=[...msgs,nova]; setMsgs(nm); setInputSim(""); setLoad(true);
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514", max_tokens:1000,
+          system:`Você é um simulador de comunicação em português brasileiro. Cenário: ${sim.cenario}. Papel: ${sim.papel}. Responda de forma realista e desafiadora. Após 4-5 trocas, dê feedback construtivo curto. Máx 3 parágrafos.`,
+          messages:nm.map(m=>({role:m.role,content:m.content}))
+        })
+      });
+      const d=await res.json();
+      setMsgs(m=>[...m,{role:"assistant",content:d.content?.map(b=>b.text||"").join("")||"..."}]);
+    } catch { setMsgs(m=>[...m,{role:"assistant",content:"Erro de conexão."}]); }
+    setLoad(false);
+    setTimeout(()=>chatRef.current?.scrollTo(0,chatRef.current.scrollHeight),100);
+  };
+
+  const iniciarSim = (s) => { setSim(s); setMsgs([{role:"assistant",content:`${s.cenario}\n\nPode começar — estou no papel de ${s.papel}.`}]); setInputSim(""); setTela("sim"); };
+
+  const total=hist.length;
+  const scoreMedio=total?Math.round(hist.reduce((a,b)=>a+(b.score||75),0)/total):0;
+
+  // ── TELA EXERCÍCIO ──────────────────────────────────────────────────────────
+  if(tela==="ex" && ex) return (
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column",background:"#0F0F0F"}}>
+      <div style={{background:"#141414",borderBottom:"1px solid #1E1E1E",padding:"20px 20px 16px"}}>
+        <button onClick={()=>{setTela("home");limpar();}} style={{background:"none",border:"none",color:"#666",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:12,padding:0}}>← Voltar</button>
+        <Badge texto={`${CATS[ex.cat].emoji} ${CATS[ex.cat].label}`} cor={corEx}/>
+        <div style={{fontSize:21,marginTop:10,lineHeight:1.3}}>{ex.titulo}</div>
+      </div>
+      <div style={{padding:20,flex:1,display:"flex",flexDirection:"column",gap:16,overflowY:"auto"}}>
+        <Crono minutos={ex.min}/>
+        <div style={{background:"#141414",border:"1px solid #1E1E1E",borderRadius:12,padding:16}}>
+          <div style={{fontSize:10,letterSpacing:3,color:"#555",textTransform:"uppercase",marginBottom:8}}>Instrução</div>
+          <div style={{fontSize:14,color:"#C0BDB6",lineHeight:1.7}}>{ex.inst}</div>
+        </div>
+        <div style={{background:corEx+"11",border:`1px solid ${corEx}33`,borderRadius:12,padding:16}}>
+          <div style={{fontSize:10,letterSpacing:3,color:corEx+"99",textTransform:"uppercase",marginBottom:8}}>Material</div>
+          <div style={{fontSize:16,color:"#F0EDE6",lineHeight:1.7,fontStyle:"italic"}}>{ex.prompt}</div>
+        </div>
+        <div style={{display:"flex",gap:10,padding:"12px 14px",background:"#0A0A0A",borderRadius:10,border:"1px solid #1A1A1A"}}>
+          <span style={{fontSize:16,flexShrink:0}}>💡</span>
+          <div style={{fontSize:13,color:"#666",lineHeight:1.6}}>{ex.dica}</div>
+        </div>
+        {!fb && (
+          <div style={{display:"flex",background:"#141414",border:"1px solid #1E1E1E",borderRadius:10,padding:3}}>
+            {[{id:"voz",l:"🎙 Gravar voz"},{id:"texto",l:"✏️ Escrever"}].map(m=>(
+              <button key={m.id} onClick={()=>setModo(m.id)} style={{flex:1,background:modo===m.id?corEx:"none",color:modo===m.id?"#0F0F0F":"#555",border:"none",borderRadius:8,padding:"8px",fontSize:13,fontFamily:"inherit",cursor:"pointer"}}>{m.l}</button>
+            ))}
+          </div>
+        )}
+        {!fb && modo==="voz" && <Gravador cor={corEx} onTranscricao={(t,a)=>{setTrans(t);setAvoz(a);}}/>}
+        {!fb && modo==="texto" && (
+          <div>
+            <div style={{fontSize:10,letterSpacing:3,color:"#555",textTransform:"uppercase",marginBottom:8}}>Sua resposta</div>
+            <textarea value={texto} onChange={e=>setTexto(e.target.value)} placeholder="Escreva o que você falou, como foi, o que percebeu..." style={{width:"100%",minHeight:110,background:"#141414",border:"1px solid #2A2A2A",borderRadius:12,padding:16,color:"#F0EDE6",fontSize:15,fontFamily:"inherit",lineHeight:1.7,resize:"vertical",boxSizing:"border-box"}}/>
+          </div>
+        )}
+        {!fb && (
+          <button onClick={obterFb} disabled={load||!conteudo.trim()} style={{background:conteudo.trim()?corEx:"#1A1A1A",color:conteudo.trim()?"#0F0F0F":"#444",border:"none",borderRadius:12,padding:16,fontSize:15,fontFamily:"inherit",cursor:"pointer"}}>
+            {load?"Analisando...":"Receber feedback da IA →"}
+          </button>
+        )}
+        {fb && (
+          <div style={{background:"#141414",border:"1px solid #2A2A2A",borderRadius:14,padding:20,animation:"fadeIn 0.4s ease"}}>
+            <div style={{fontSize:10,letterSpacing:3,color:corEx,textTransform:"uppercase",marginBottom:12}}>✦ Feedback do Coach</div>
+            <div style={{fontSize:14,color:"#C0BDB6",lineHeight:1.8}}>{fb}</div>
+            <button onClick={()=>{setTela("home");limpar();}} style={{marginTop:16,background:corEx,color:"#0F0F0F",border:"none",borderRadius:10,padding:12,fontSize:13,fontFamily:"inherit",cursor:"pointer",width:"100%"}}>Próximo exercício →</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ── TELA SIMULAÇÃO ──────────────────────────────────────────────────────────
+  if(tela==="sim" && sim) return (
+    <div style={{height:"100vh",display:"flex",flexDirection:"column",background:"#0F0F0F"}}>
+      <div style={{background:"#141414",borderBottom:"1px solid #1E1E1E",padding:"18px 20px",flexShrink:0}}>
+        <button onClick={()=>setTela("home")} style={{background:"none",border:"none",color:"#666",fontSize:13,cursor:"pointer",fontFamily:"inherit",marginBottom:10,padding:0}}>← Encerrar</button>
+        <Badge texto={`🎭 ${sim.titulo}`} cor={sim.cor}/>
+      </div>
+      <div ref={chatRef} style={{flex:1,overflowY:"auto",padding:16,display:"flex",flexDirection:"column",gap:12}}>
+        {msgs.map((m,i)=>(
+          <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+            <div style={{background:m.role==="user"?sim.cor+"22":"#141414",border:`1px solid ${m.role==="user"?sim.cor+"55":"#222"}`,borderRadius:m.role==="user"?"14px 14px 4px 14px":"14px 14px 14px 4px",padding:"12px 16px",maxWidth:"82%",fontSize:14,lineHeight:1.7,color:m.role==="user"?"#F0EDE6":"#C0BDB6"}}>
+              {m.content}
+            </div>
+          </div>
+        ))}
+        {load && <div style={{display:"flex",gap:5,padding:"12px 16px",background:"#141414",borderRadius:"14px 14px 14px 4px",width:"fit-content",border:"1px solid #222"}}>
+          {[0,1,2].map(i=><div key={i} style={{width:6,height:6,background:"#555",borderRadius:"50%",animation:`pulse 1.2s ${i*0.2}s infinite`}}/>)}
+        </div>}
+      </div>
+      <div style={{background:"#141414",borderTop:"1px solid #1E1E1E",padding:"12px 16px",display:"flex",gap:10,flexShrink:0}}>
+        <input value={inputSim} onChange={e=>setInputSim(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&enviarSim()} placeholder="Escreva sua fala..." style={{flex:1,background:"#0F0F0F",border:"1px solid #2A2A2A",borderRadius:10,padding:"10px 14px",color:"#F0EDE6",fontSize:14,fontFamily:"inherit"}}/>
+        <button onClick={enviarSim} disabled={!inputSim.trim()||load} style={{background:inputSim.trim()?sim.cor:"#1A1A1A",color:inputSim.trim()?"#0F0F0F":"#444",border:"none",borderRadius:10,padding:"10px 16px",cursor:"pointer",fontSize:16}}>→</button>
+      </div>
+    </div>
+  );
+
+  // ── HOME ────────────────────────────────────────────────────────────────────
+  return (
+    <div style={{minHeight:"100vh",background:"#0F0F0F",paddingBottom:40}}>
+      <div style={{padding:"32px 20px 0"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div>
+            <div style={{fontSize:11,letterSpacing:4,color:"#555",textTransform:"uppercase",marginBottom:6}}>Coach de Comunicação</div>
+            <div style={{fontSize:28,lineHeight:1.2}}>Sua Voz,<br/><span style={{color:"#E8C547",fontStyle:"italic"}}>Sua Presença.</span></div>
+          </div>
+          <div style={{background:"#141414",border:"1px solid #222",borderRadius:12,padding:"10px 16px",textAlign:"center"}}>
+            <div style={{fontSize:22}}>🔥</div>
+            <div style={{fontSize:13,color:"#E8C547",fontFamily:"monospace"}}>3</div>
+            <div style={{fontSize:10,color:"#555"}}>dias</div>
+          </div>
+        </div>
+        {total>0 && (
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:20}}>
+            {[{l:"Sessões",v:total,c:"#E8C547"},{l:"Score médio",v:scoreMedio+"%",c:"#47B8E8"},{l:"Streak",v:"3d",c:"#E87C47"}].map(m=>(
+              <div key={m.l} style={{background:"#141414",border:"1px solid #1E1E1E",borderRadius:10,padding:10,textAlign:"center"}}>
+                <div style={{fontSize:20,color:m.c,fontFamily:"monospace"}}>{m.v}</div>
+                <div style={{fontSize:10,color:"#555",marginTop:2}}>{m.l}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{display:"flex",margin:"24px 20px 0",background:"#141414",borderRadius:12,padding:4,border:"1px solid #1E1E1E"}}>
+        {[{id:"treino",l:"Treino"},{id:"sim",l:"Simulação"},{id:"prog",l:"Progresso"},{id:"dicas",l:"Dicas"}].map(a=>(
+          <button key={a.id} onClick={()=>setAba(a.id)} style={{flex:1,background:aba===a.id?"#E8C547":"none",color:aba===a.id?"#0F0F0F":"#555",border:"none",borderRadius:9,padding:"8px 4px",fontSize:11,fontFamily:"inherit",cursor:"pointer"}}>{a.l}</button>
+        ))}
+      </div>
+
+      <div style={{padding:"20px 20px"}}>
+
+        {aba==="treino" && <>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:18}}>
+            <button onClick={()=>setCatF(null)} style={{background:!catF?"#E8C547":"#141414",color:!catF?"#0F0F0F":"#666",border:`1px solid ${!catF?"#E8C547":"#2A2A2A"}`,borderRadius:20,padding:"5px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Hoje</button>
+            {Object.entries(CATS).map(([k,c])=>(
+              <button key={k} onClick={()=>setCatF(k)} style={{background:catF===k?c.cor:"#141414",color:catF===k?"#0F0F0F":"#666",border:`1px solid ${catF===k?c.cor:"#2A2A2A"}`,borderRadius:20,padding:"5px 12px",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>{c.emoji}</button>
+            ))}
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {listaEx.map(e=>{
+              const c=CATS[e.cat];
+              const feito=hist.some(h=>h.titulo===e.titulo&&Date.now()-h.data<86400000);
+              return (
+                <button key={e.id} onClick={()=>{setEx(e);limpar();setModo("voz");setTela("ex");}} style={{background:"#141414",border:"1px solid #1E1E1E",borderLeft:`3px solid ${c.cor}`,borderRadius:14,padding:18,textAlign:"left",cursor:"pointer",fontFamily:"inherit"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                    <Badge texto={`${c.emoji} ${c.label}`} cor={c.cor}/>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <span style={{fontSize:10,color:"#555"}}>🎙 {e.min}min</span>
+                      {feito&&<span>✅</span>}
+                    </div>
+                  </div>
+                  <div style={{fontSize:16,color:"#F0EDE6",marginBottom:6}}>{e.titulo}</div>
+                  <div style={{fontSize:12,color:"#555",lineHeight:1.5}}>{e.inst.substring(0,70)}...</div>
+                </button>
+              );
+            })}
+          </div>
+        </>}
+
+        {aba==="sim" && <>
+          <div style={{fontSize:13,color:"#666",marginBottom:18,lineHeight:1.6}}>Pratique situações reais com a IA no papel do interlocutor. Feedback ao final.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            {SIMS.map(s=>(
+              <button key={s.id} onClick={()=>iniciarSim(s)} style={{background:"#141414",border:"1px solid #222",borderLeft:`3px solid ${s.cor}`,borderRadius:14,padding:18,textAlign:"left",cursor:"pointer",fontFamily:"inherit"}}>
+                <div style={{marginBottom:8}}><Badge texto="🎭 Simulação" cor={s.cor}/></div>
+                <div style={{fontSize:16,color:"#F0EDE6",marginBottom:6}}>{s.titulo}</div>
+                <div style={{fontSize:12,color:"#555",lineHeight:1.5}}>{s.cenario.substring(0,80)}...</div>
+                <div style={{marginTop:10,fontSize:11,color:s.cor}}>Papel da IA: {s.papel} →</div>
+              </button>
+            ))}
+          </div>
+        </>}
+
+        {aba==="prog" && (
+          total===0
+          ? <div style={{textAlign:"center",padding:"40px 0",color:"#444"}}><div style={{fontSize:40,marginBottom:12}}>📊</div><div style={{fontSize:14}}>Complete seus primeiros exercícios<br/>para ver seu progresso aqui.</div></div>
+          : <>
+            <div style={{marginBottom:24}}>
+              <div style={{fontSize:11,letterSpacing:3,color:"#555",textTransform:"uppercase",marginBottom:14}}>Por categoria</div>
+              {Object.keys(CATS).map(k=>{
+                const count=hist.filter(h=>h.cat===k).length;
+                if(!count) return null;
+                return (
+                  <div key={k} style={{marginBottom:14}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                      <span style={{fontSize:13,color:"#C0BDB6"}}>{CATS[k].emoji} {CATS[k].label}</span>
+                      <span style={{fontSize:13,color:CATS[k].cor,fontFamily:"monospace"}}>{count}×</span>
+                    </div>
+                    <PBar valor={count*20} cor={CATS[k].cor}/>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{fontSize:11,letterSpacing:3,color:"#555",textTransform:"uppercase",marginBottom:14}}>Histórico recente</div>
+            {hist.slice(-6).reverse().map((h,i)=>{
+              const c=CATS[h.cat];
+              return (
+                <div key={i} style={{background:"#141414",border:"1px solid #1E1E1E",borderRadius:10,padding:"12px 16px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:13,color:"#C0BDB6"}}>{h.titulo}</div>
+                    <div style={{fontSize:11,color:"#555",marginTop:2}}>{c?.label} · {new Date(h.data).toLocaleDateString("pt-BR")}</div>
+                  </div>
+                  <div style={{fontSize:13,color:"#47E8B8",fontFamily:"monospace"}}>{Math.round(h.score||75)}%</div>
+                </div>
+              );
+            })}
+          </>
+        )}
+
+        {aba==="dicas" && <>
+          <div style={{fontSize:13,color:"#666",marginBottom:18,lineHeight:1.6}}>Técnicas dos melhores coaches e metodologias de comunicação.</div>
+          <div style={{display:"flex",flexDirection:"column",gap:14}}>
+            {DICAS.map((d,i)=>{
+              const c=CATS[d.cat];
+              return (
+                <div key={i} style={{background:"#141414",borderLeft:`3px solid ${c.cor}`,borderRadius:14,padding:18,border:"1px solid #1E1E1E"}}>
+                  <div style={{marginBottom:8}}><Badge texto={`${c.emoji} ${c.label}`} cor={c.cor}/></div>
+                  <div style={{fontSize:15,color:"#F0EDE6",marginBottom:8}}>{d.titulo}</div>
+                  <div style={{fontSize:13,color:"#888",lineHeight:1.7}}>{d.texto}</div>
+                </div>
+              );
+            })}
+          </div>
+        </>}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
 </html>
